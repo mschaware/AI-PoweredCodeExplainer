@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeLens AI — AI-Powered Code Explainer</title>
+  <meta name="description" content="Paste Python or JavaScript code and get instant plain-English explanations, complexity analysis, and AI-optimized versions with diff view." />
+
+  <!-- Highlight.js for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+  <!-- diff2html for diff view -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html-ui.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 0-2 2h-3"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <span class="logo-text">CodeLens<span class="logo-ai">AI</span></span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">History</h3>
+      <div id="historyList" class="history-list">
+        <div class="history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-6-6z"/>
+            <path d="M9 3v6h6"/>
+          </svg>
+          <p>No snippets yet</p>
+          <span>Paste code and click Explain</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-clear-history" id="clearHistoryBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+        Clear All
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ────────────────────────────────────────── -->
+  <main class="main" id="main">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" id="menuToggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </button>
+        <div class="breadcrumb">
+          <span>Code Explainer</span>
+          <span class="breadcrumb-sep">/</span>
+          <span id="breadcrumbLang" class="breadcrumb-active">New Snippet</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="provider-badge" id="providerBadge">
+          <span class="provider-dot"></span>
+          <span id="providerLabel">Gemini AI</span>
+        </div>
+        <a href="https://github.com" target="_blank" class="github-link" title="View on GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- Input Panel -->
+    <section class="input-section">
+      <div class="input-card">
+        <div class="input-toolbar">
+          <div class="lang-selector">
+            <button class="lang-btn active" id="langPython" data-lang="python">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="lang-icon">
+                <path d="M11.914 0C5.82 0 6.2 2.656 6.2 2.656l.007 2.752h5.814v.826H3.912S0 5.789 0 11.969c0 6.18 3.403 5.962 3.403 5.962h2.031v-2.867s-.109-3.402 3.349-3.402h5.771s3.24.052 3.24-3.13V3.13S18.28 0 11.914 0zm-3.21 1.814a1.049 1.049 0 1 1 0 2.097 1.049 1.049 0 0 1 0-2.097z"/>
+                <path d="M12.086 24c6.094 0 5.714-2.656 5.714-2.656l-.007-2.752h-5.814v-.826h8.109S24 18.211 24 12.031c0-6.18-3.403-5.962-3.403-5.962h-2.031v2.867s.109 3.402-3.349 3.402H9.446s-3.24-.052-3.24 3.13v5.402S5.72 24 12.086 24zm3.21-1.814a1.049 1.049 0 1 1 0-2.097 1.049 1.049 0 0 1 0 2.097z"/>
+              </svg>
+              Python
+            </button>
+            <button class="lang-btn" id="langJS" data-lang="javascript">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="lang-icon">
+                <path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.404-.601-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z"/>
+              </svg>
+              JavaScript
+            </button>
+          </div>
+          <div class="input-actions">
+            <button class="btn-icon" id="clearCodeBtn" title="Clear editor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+              </svg>
+            </button>
+            <button class="btn-icon" id="pasteExampleBtn" title="Load example">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-wrapper">
+          <div class="line-numbers" id="lineNumbers"></div>
+          <textarea
+            id="codeInput"
+            class="code-editor"
+            placeholder="# Paste your Python or JavaScript code here...
+# 
+# Click 'Load Example' to see a demo, or start typing!
+# 
+# Features:
+#   ✦ Plain-English explanation
+#   ✦ Key code highlights with annotations
+#   ✦ Time & Space complexity analysis
+#   ✦ AI-optimized version with diff view"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+          ></textarea>
+        </div>
+
+        <div class="input-footer">
+          <div class="char-count">
+            <span id="lineCount">0</span> lines · <span id="charCount">0</span> chars
+          </div>
+          <div class="submit-group">
+            <button class="btn-secondary" id="optimizeBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              Optimize & Diff
+            </button>
+            <button class="btn-primary" id="explainBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4M12 8h.01"/>
+              </svg>
+              <span class="btn-text">Explain Code</span>
+              <span class="btn-loader" hidden>
+                <span class="spinner"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Panel -->
+    <section class="results-section" id="resultsSection" hidden>
+
+      <!-- Explanation Card -->
+      <div class="result-card" id="explanationCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-icon card-icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4M12 8h.01"/>
+              </svg>
+            </div>
+            <h2>Plain-English Explanation</h2>
+          </div>
+          <div class="lang-badge" id="resultLangBadge"></div>
+        </div>
+        <div class="card-body">
+          <p class="explanation-text" id="explanationText"></p>
+          <div class="confidence-note" id="confidenceNote"></div>
+        </div>
+      </div>
+
+      <!-- Complexity Card -->
+      <div class="result-card complexity-card" id="complexityCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-icon card-icon--purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <h2>Complexity Analysis</h2>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="complexity-grid">
+            <div class="complexity-item">
+              <span class="complexity-label">⏱ Time</span>
+              <span class="complexity-value" id="timeComplexity"></span>
+            </div>
+            <div class="complexity-item">
+              <span class="complexity-label">🧠 Space</span>
+              <span class="complexity-value" id="spaceComplexity"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Highlighted Code Card -->
+      <div class="result-card full-width" id="highlightCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-icon card-icon--green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+            </div>
+            <h2>Annotated Source Code</h2>
+          </div>
+          <button class="btn-copy" id="copyCodeBtn" title="Copy code">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy
+          </button>
+        </div>
+        <div class="card-body code-card-body">
+          <div class="code-with-annotations">
+            <div class="code-display-wrapper">
+              <pre><code id="highlightedCode" class="language-python"></code></pre>
+            </div>
+            <div class="annotations-panel" id="annotationsPanel"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Issues Card -->
+      <div class="result-card" id="issuesCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-icon card-icon--orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h2>Potential Issues</h2>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="issues-list" id="issuesList"></ul>
+        </div>
+      </div>
+
+      <!-- Diff Card (Optimize view) -->
+      <div class="result-card full-width" id="diffCard" hidden>
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-icon card-icon--teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </div>
+            <h2>Optimized Code — Diff View</h2>
+          </div>
+          <button class="btn-copy" id="copyOptimizedBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy Optimized
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="optimization-notes" id="optimizationNotes"></div>
+          <div id="diffView" class="diff-view-container"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Welcome / Empty State -->
+    <section class="welcome-section" id="welcomeSection">
+      <div class="welcome-content">
+        <div class="welcome-hero">
+          <div class="hero-icon">
+            <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="heroGrad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6366f1"/>
+                  <stop offset="1" stop-color="#8b5cf6"/>
+                </linearGradient>
+              </defs>
+              <circle cx="40" cy="40" r="38" stroke="url(#heroGrad)" stroke-width="2" opacity="0.3"/>
+              <circle cx="40" cy="40" r="28" fill="url(#heroGrad)" opacity="0.15"/>
+              <path d="M25 32l-8 8 8 8M55 32l8 8-8 8" stroke="url(#heroGrad)" stroke-width="3" stroke-linecap="round"/>
+              <path d="M35 52l10-24" stroke="url(#heroGrad)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h1>AI-Powered Code Explainer</h1>
+          <p>Paste any Python or JavaScript code and get instant plain-English explanations, complexity analysis, and AI-optimized versions.</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3>Plain-English Explanations</h3>
+            <p>Understand what any code does in 2–4 clear sentences, powered by Gemini AI.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Complexity Analysis</h3>
+            <p>Automatic time and space complexity detection with Big-O notation.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🌳</div>
+            <h3>AST-Powered Highlights</h3>
+            <p>Real syntax tree parsing identifies functions, loops, classes, and more.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Diff View Optimization</h3>
+            <p>See AI-suggested improvements side-by-side with your original code.</p>
+          </div>
+        </div>
+
+        <div class="example-snippets">
+          <p class="example-label">Try an example:</p>
+          <div class="example-chips">
+            <button class="chip" data-example="bubble-sort">Bubble Sort</button>
+            <button class="chip" data-example="fibonacci">Fibonacci</button>
+            <button class="chip" data-example="fetch-api">Fetch API</button>
+            <button class="chip" data-example="binary-search">Binary Search</button>
+            <button class="chip" data-example="class-example">OOP Class</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error toast -->
+    <div class="toast" id="errorToast" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4M12 16h.01"/>
+      </svg>
+      <span id="toastMessage"></span>
+      <button class="toast-close" id="toastClose">×</button>
+    </div>
+
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
