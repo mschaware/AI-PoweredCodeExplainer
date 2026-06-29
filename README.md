@@ -189,9 +189,3 @@ Returns: same schema, focused on optimized code and diff
 
 ### `GET /api/health`
 Returns provider status and timestamp.
-
----
-
-## 📄 License
-
-MIT © 2024
