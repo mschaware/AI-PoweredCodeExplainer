@@ -537,8 +537,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 AI Code Explainer running at http://localhost:${PORT}`);
-  console.log(`   Provider chain: Gemini → OpenAI → Claude → Mistral`);
-  console.log(`   Press Ctrl+C to stop\n`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 AI Code Explainer running at http://localhost:${PORT}`);
+    console.log(`   Provider chain: Gemini → OpenAI → Claude → Mistral`);
+    console.log(`   Press Ctrl+C to stop\n`);
+  });
+}
+
+module.exports = app;
